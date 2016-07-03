@@ -1,21 +1,44 @@
 library(shiny)
+library(ggplot2)
 
+# Define a server for the Shiny app
 shinyServer(function(input, output) {
-  output$contents <- renderTable({
-    
-    # input$file1 will be NULL initially. After the user selects
-    # and uploads a file, it will be a data frame with 'name',
-    # 'size', 'type', and 'datapath' columns. The 'datapath'
-    # column will contain the local filenames where the data can
-    # be found.
-    
+  
+  data <- reactive({
     inFile <- input$file1
-    
+    if (~is.null(inFile))
+    data <- read.csv(inFile$datapath)
+    data
+  })
+  
+  
+  output$ui <- renderUI({
+    inFile <- input$file1
     if (is.null(inFile))
       return(NULL)
-    
     data <- read.csv(inFile$datapath)
-    
+    selectInput("vmId",
+                "VM编号:",
+                c("All", unique(data$VM编号))
+    )
+  })
+  # Filter data based on selections
+  output$table1 <- DT::renderDataTable(DT::datatable({
+    inFile <- input$file1
+    if (is.null(inFile))
+      return(NULL)
+    data <- read.csv(inFile$datapath)
+    if (input$vmId != "All") {
+      data <- data[data$VM编号 == input$vmId,]
+    }
+    data
+  }))
+  
+  output$table2 <- DT::renderDataTable(DT::datatable({
+    inFile <- input$file1
+    if (is.null(inFile))
+      return(NULL)
+    data <- read.csv(inFile$datapath)
     names <- unique(data$名称)
     
     summ <- data.frame(names)
@@ -32,5 +55,13 @@ shinyServer(function(input, output) {
     
     summ <- cbind(summ, num_sold)
     summ <- cbind(summ, profit)
-  })
+    
+    data <- summ
+    
+    if (input$vmId != "All") {
+      data <- data[data$VM编号 == input$vmId,]
+    }
+    data
+  }))
+  
 })
